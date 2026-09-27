@@ -1,0 +1,262 @@
+﻿@using MechanicShop.Contracts.Requests
+
+<div class="container">
+    <h3 class="my-4 border-start border-5 p-1"> 
+        <SpotComponent Spot="Spot" />
+    </h3>
+    @if (isLoading)
+    {
+        <div class="text-center my-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+
+    <EditForm Model="@createWorkOrderRequest" OnValidSubmit="HandleSubmit">
+        <DataAnnotationsValidator /> 
+        <div class="mb-3">
+            <label for="customer" class="form-label">Customer</label>
+            <InputSelect id="customer" @bind-Value="selectedCustomerId" @bind-Value:after="LoadVehicles" class="form-select" disabled="@Disabled">
+                <option value="" selected>-- Select Customer --</option>
+                @if (customers?.Any() == true)
+                {
+                    @foreach (var customer in customers)
+                    {
+                        <option value="@customer.CustomerId">@customer.Name</option>
+                    }
+                }
+            </InputSelect> 
+
+        </div>
+
+        <div class="mb-3">
+            <label for="vehicle" class="form-label">Vehicle</label>
+            <InputSelect id="vehicle" @bind-Value="createWorkOrderRequest.VehicleId" class="form-select" disabled="@(vehicles?.Any() == false)">
+                <option value="" selected>-- Select Vehicle --</option>
+                @if (vehicles?.Any() == true)
+                {
+                    @foreach (var vehicle in vehicles)
+                    {
+                        <option value="@vehicle.VehicleId">@vehicle.Make  | @vehicle.Model  | @vehicle.Year</option>
+                    }
+                }
+            </InputSelect>
+            @if (vehicles?.Any() == true)
+            {
+                <ValidationMessage For="@(() => createWorkOrderRequest.VehicleId)" />
+            }
+        </div>
+
+        <div class="mb-3">
+            <label for="repairTask" class="form-label">Repair task</label>  
+            <RepairTaskSelector ReadOnly="@Disabled"
+            ExcludedTaskIds="@createWorkOrderRequest.RepairTaskIds"
+            OnTaskAdded="@OnTaskAdded"
+            OnTaskRemoved="@OnTaskRemoved" />
+            <ValidationMessage For="@(() => createWorkOrderRequest.RepairTaskIds)" />
+        </div>
+
+        <div class="mb-3">
+            <div class="row">
+                <div class="col-6 row">
+                    <div class="col-6">
+                        <label class="form-label">Start Date</label>
+                        <InputDate @bind-Value="_localStartDate" class="form-control" />
+                    </div>
+
+                    <div class="col-6">
+                        <label class="form-label">Start Time</label>
+                        <InputSelect class="form-select" @bind-Value="_localStartTime">
+                            @foreach (var time in TimeOptions)
+                            {
+                                <option value="@time">@time.ToString(@"hh\:mm")</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <label for="labors" class="form-label">Labor</label>
+                    <InputSelect id="labors" @bind-Value="createWorkOrderRequest.LaborId" class="form-select" disabled="@Disabled">
+                        <option value="" selected> -- Labor -- </option>
+                        @if (labors?.Any() == true)
+                        {
+                            @foreach (var labor in labors)
+                            {
+                                <option value="@labor.LaborId"> @labor.Name.</option>
+                            }
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => createWorkOrderRequest.LaborId)" />
+                </div>
+            </div>
+        </div>
+        <div class="d-flex justify-content-end gap-3">
+            <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">
+                <i class="bi bi-x-circle me-2"></i>Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" disabled="@Disabled">
+                <i class="bi bi-save me-2"></i>Save
+            </button>
+        </div>
+    </EditForm>
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert alert-danger mt-3">
+            <strong>Error:</strong> @errorMessage
+        </div>
+    }
+</div>
+@code {
+    [Inject] private ServiceApi serviceApi { get; set; } = default!;
+
+    [Inject] private IAccountManagement accountManagement { get; set; } = default!;
+
+    [Parameter]
+    [EditorRequired] 
+    public EventCallback OnWorkOrderCreated { get; set; } = default!;
+
+    [Parameter] 
+    [EditorRequired]
+    public DateTime StartAt { get; set; } = default!;
+
+    [Parameter]
+    public Spot Spot { get; set; }
+
+    [Parameter]
+    public TimeSpan MaxAllowedDuration { get; set; } = TimeSpan.FromHours(8);
+
+    [Parameter]
+    public bool Disabled { get; set; } 
+
+    private DateTime _localStartDate;
+    private TimeSpan _localStartTime;
+
+    private DateTime LocalStartAt
+    {
+        get => _localStartDate.Date + _localStartTime;
+        set
+        {
+            _localStartDate = value.Date;
+            _localStartTime = TimeSpan.FromMinutes(Math.Round(value.TimeOfDay.TotalMinutes / 15.0) * 15);
+            var local = _localStartDate + _localStartTime;
+            var offset = TimeZoneInfo.Local.GetUtcOffset(local);
+            createWorkOrderRequest.StartAtUtc = new DateTimeOffset(local, offset);
+        }
+    }
+
+    private CreateWorkOrderRequest createWorkOrderRequest = new ();
+
+    private List<CustomerModel>? customers = [];
+    private List<VehicleModel>? vehicles = [];
+    private List<RepairTaskModel>? repairServices = [];
+    private List<LaborModel>? labors = [];
+
+    private bool isLoading = true;
+
+    private Guid? selectedCustomerId;
+
+    private string? errorMessage;
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+
+        var getCustomersTask = serviceApi.GetCustomersAsync();
+        var getRepairTasksTask = serviceApi.GetRepairTasksAsync();
+        var getLaborsTask = serviceApi.GetLaborsAsync();
+
+        await Task.WhenAll(getCustomersTask, getRepairTasksTask, getLaborsTask);
+
+        var customersResult = getCustomersTask.Result;
+        var repairResult = getRepairTasksTask.Result;
+        var laborsResult = getLaborsTask.Result;
+
+        if (customersResult.IsSuccess)
+        {
+            customers = customersResult.Data;
+        }
+
+        if (repairResult.IsSuccess)
+        {
+            repairServices = repairResult.Data;
+        }
+
+        if (laborsResult.IsSuccess)
+        {
+            labors = laborsResult.Data;
+        }
+
+        createWorkOrderRequest.RepairTaskIds = [];
+
+        isLoading = false; 
+    }
+
+    protected override void OnParametersSet()
+    { 
+        LocalStartAt = StartAt;
+        createWorkOrderRequest.Spot = Spot;
+    }
+
+    private async Task LoadVehicles()
+    {
+        if (selectedCustomerId.HasValue)
+        {
+            var customerVehicleResult = await serviceApi.GetVehiclesByCustomerIdAsync(selectedCustomerId.Value);
+
+            if(customerVehicleResult.IsSuccess)
+            {
+                vehicles = customerVehicleResult.Data;
+            } 
+        }
+        else
+        {
+            vehicles = [];
+        }
+    }
+
+    private List<TimeSpan> TimeOptions =>
+    Enumerable.Range(0, 96)
+              .Select(i => TimeSpan.FromMinutes(i * 15))
+              .ToList();
+
+
+
+    private async Task HandleSubmit()
+    {
+        var local = _localStartDate + _localStartTime;
+        var offset = TimeZoneInfo.Local.GetUtcOffset(local);
+        createWorkOrderRequest.StartAtUtc = new DateTimeOffset(local, offset);
+
+        var createOrderResult = await serviceApi.CreateWorkOrderAsync(createWorkOrderRequest);
+
+        if (createOrderResult.IsSuccess)
+        {
+            await OnWorkOrderCreated.InvokeAsync();
+        }
+        else
+        {
+            errorMessage = createOrderResult.FirstErrorMessage;
+        }
+    } 
+
+    private void OnTaskAdded(RepairTaskModel repairTask)
+    {
+        if (!createWorkOrderRequest.RepairTaskIds.Contains(repairTask.RepairTaskId))
+        {
+            createWorkOrderRequest.RepairTaskIds.Add(repairTask.RepairTaskId);
+        }
+    }
+
+    private void OnTaskRemoved(Guid repairTaskId)
+    {
+        createWorkOrderRequest.RepairTaskIds.Remove(repairTaskId);
+    }
+
+    private async Task Cancel()
+    {
+        await OnWorkOrderCreated.InvokeAsync();
+    }
+}

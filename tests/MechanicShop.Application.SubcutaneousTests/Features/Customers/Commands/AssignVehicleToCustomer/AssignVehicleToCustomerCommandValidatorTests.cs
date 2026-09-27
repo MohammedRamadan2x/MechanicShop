@@ -1,0 +1,5 @@
+﻿namespace MechanicShop.Application.SubcutaneousTests.Features.Customers.Commands.AssignVehicleToCustomer;
+
+public class AssignVehicleToCustomerCommandValidatorTests
+{
+}

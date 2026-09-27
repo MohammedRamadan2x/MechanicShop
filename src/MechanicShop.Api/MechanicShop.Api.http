@@ -1,0 +1,138 @@
+@baseUrl = https://localhost:7007/api
+
+@Scheduled = 0
+@Confirmed = 1
+@Workorder = 2
+@Completed = 3
+@Cancelled = 4
+
+@customerJohnId = F522BBE5-E3B1-4E2C-A8A3-C41550DCF39D
+@customerSarahId = 73A04DD3-C81A-4A54-9882-EF1017EB192D
+
+@labor01Id = b6327240-0aea-46fc-863a-777fc4e42560
+@labor02Id = 8104ab20-26c2-4651-b1de-c0baf04dbbd9
+@labor03Id = e17c83de-1089-4f19-bf79-5f789133d37f
+@labor04Id = 54cd01ba-b9ae-4c14-bab6-f3df0219ba4c
+
+@transmissionFluidChangeServiceId = CEE9B309-8620-4028-8D38-2532771AB3EA
+@sparkPlugReplacementServiceId = A8E9B4E0-8581-40DF-967D-51A0F4FABC0E
+@wheelAlignmentServiceId = E4C2B675-4A60-488F-A7B4-61966E7E80E3
+@engineDiagnosticServiceId = 90F2F3EF-3357-439E-9689-628AA08200C1
+@batteryReplacementServiceId = A770CC6E-0C8B-4AC5-9EE6-6928682BD47E
+@timingBeltReplacementServiceId = D124651E-CA72-467E-BA28-81EA4A2080BC
+@airConditioningRechargeServiceId = 1CB1608C-3BC7-4325-99C3-8244C0FB412F
+@oilChangeServiceId = 616AEBB1-D515-4B40-8D47-8D5C0B67A313
+@tireRotationServiceId = A376B5D1-6B2D-4DD8-883E-D3D1721C1316
+@brakeReplacementServiceId = 4FA0BE55-06F6-4616-B086-E1F0C9354CD8
+
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxOWE1OTEyOS02YzIwLTQxN2EtODM0ZC0xMWEyMDhkMzJkOTYiLCJlbWFpbCI6InBtQGxvY2FsaG9zdCIsInJvbGUiOiJNYW5hZ2VyIiwibmJmIjoxNzg4MTcyNTkxLCJleHAiOjE3ODgxNzYxOTAsImlhdCI6MTc4ODE3MjU5MSwiaXNzIjoibG9jYWxob3N0IiwiYXVkIjoibG9jYWxob3N0In0.nR5p_D3j7P7qJpFa2tXALcJKdZYbrga7TXil0c8FHhA
+
+@workorderId = c3fffd7e-02ee-4e1e-9f8c-71defbd862b0
+
+### Get OpenAPI document
+
+GET https://localhost:7007/openapi/v1.json
+
+### Get all customers
+GET {{baseUrl}}/v1/customers
+Authorization: Bearer {{token}}
+
+### Get a customer
+GET {{baseUrl}}/v1/customers/{{customerJohnId}}
+Authorization: Bearer {{token}}
+
+### Get all labors
+GET {{baseUrl}}/v1/labors
+Authorization: Bearer {{token}}
+
+### Get all repair task
+GET {{baseUrl}}/v1/repair-tasks
+Authorization: Bearer {{token}}
+
+### Get a Repair task
+GET {{baseUrl}}/v1/repair-tasks/cee9b309-8620-4128-8d38-2532771ab3ea
+Authorization: Bearer {{token}}
+
+
+### Get all workorders
+GET {{baseUrl}}/v1/workorders
+Authorization: Bearer {{token}}
+
+
+### search workorders
+GET {{baseUrl}}/v1/workorders?page=1&pageSize=20&searchTerm=Comp&sortColumn=serviceId
+Authorization: Bearer {{token}}
+
+
+### Get workorder by Id 
+GET {{baseUrl}}/v1/workorders/{{workorderId}}
+Authorization: Bearer {{token}}
+
+### Create workorder
+POST {{baseUrl}}/v1/workorders/
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "vehicleId": "13c80914-41ad-4d46-b7bb-60f6c89ad01e",
+  "repairTaskId": "1cb1608c-3bc7-4325-99c3-8244c0fb412f",
+  "laborId": "{{labor02Id}}",
+  "startAt": "2025-03-14T16:00:00Z",
+  "duration": "01:00:00"
+}
+
+### Update workorder Timing
+PUT {{baseUrl}}/v1/workorders/{{workorderId}}/timing
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "startAt": "2025-03-02T14:00:00Z",
+  "duration": "00:45:00"
+}
+
+### Update workorder labor
+PUT {{baseUrl}}/v1/workorders/{{workorderId}}/labor
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "laborId": "{{labor01Id}}"
+}
+
+### Update workorder state
+PUT {{baseUrl}}/v1/workorders/{{workorderId}}/state
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "NewStatus": {{Workorder}}
+}
+
+### delete workorder
+DELETE {{baseUrl}}/v1/workorders/{{workorderId}}
+Authorization: Bearer {{token}}
+
+### Invoice workorder
+POST {{baseUrl}}/v1/invoices/workorders/{{workorderId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{}
+
+### Get Invoice by Id 
+GET {{baseUrl}}/v1/invoices/{{invoiceId}}
+Authorization: Bearer {{token}}
+
+### Get Invoice in PDF
+GET {{baseUrl}}/v1/invoices/{{invoiceId}}/pdf
+Authorization: Bearer {{token}}
+
+### Get today schedule workorder
+GET {{baseUrl}}/v1/workorders/schedule
+Authorization: Bearer {{token}}
+
+### Get specific day schedule workorder
+GET {{baseUrl}}/v1/workorders/schedule/2025-03-01?laborId=fdbe2dc3-7c0d-4a91-9f33-0a7c1a574f9e
+X-TimeZone: America/Montreal
+Authorization: Bearer {{token}}

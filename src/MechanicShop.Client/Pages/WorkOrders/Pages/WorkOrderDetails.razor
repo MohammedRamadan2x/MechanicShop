@@ -1,0 +1,221 @@
+﻿@page "/workorder-details/{WorkOrderId:guid}"
+@attribute [Authorize]
+
+@if (WorkOrder is null)
+{
+    <em>loading</em>
+}
+else
+{
+    <div class="container">
+        <div class="d-flex justify-content-end mt-3">
+            <a class="btn btn-outline-secondary me-2" href="/schedule">
+                <i class="bi bi-calendar-event"></i> Schedule
+            </a>
+            <a class="btn btn-outline-primary" href="/workorders">
+                <i class="bi bi-gear-fill"></i> All Work Orders
+            </a>
+        </div>
+        <h3 class="my-4 border-start border-5 p-1">
+            <i class="bi bi-calendar-plus-fill mx-2"></i>Job Details
+        </h3>
+        <!-- Vehicle and Service Information -->
+        <div class="row mb-4">
+            <div class="col-md-5">
+                <div class="card h-100">
+                    <div class="card-header bg-primary bg-opacity-50 text-white">Vehicle Information</div>
+                    <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                        <i class="bi bi-car-front-fill mb-4" style="font-size: 10rem;"></i>
+
+                        <div class="row w-100 text-center">
+                            <div class="col-3">
+                                <div class="text-muted small">Make</div>
+                                <div class="fs-5 fw-semibold">@WorkOrder.Vehicle!.Make</div>
+                            </div>
+                            <div class="col-3">
+                                <div class="text-muted small">Model</div>
+                                <div class="fs-5 fw-semibold">@WorkOrder.Vehicle.Model</div>
+                            </div>
+                            <div class="col-2">
+                                <div class="text-muted small">Year</div>
+                                <div class="fs-5 fw-semibold">@WorkOrder.Vehicle.Year</div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted small">Plate</div>
+                                <div class="fs-5 fw-semibold">@WorkOrder.Vehicle.LicensePlate</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="col-md-7">
+                <div class="card h-100">
+                    <div class="card-header bg-primary bg-opacity-50 text-white">Workorder Information</div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div class="container-fluid py-4">
+                                <div class="card shadow-lg">
+                                    <div class="card-header bg-dark text-white">
+                                        <div class="row text-center border rounded py-3 shadow-sm">
+                                     
+                                            <div class="col-6 col-md-2 mb-3 mb-md-0">
+                                                <div class="text-muted small">Job ID</div>
+                                                <div class="fw-semibold">@WorkOrder.WorkOrderId.ToString()[..8]</div>
+                                            </div>
+
+                                            <div class="col-6 col-md-3 mb-3 mb-md-0">
+                                                <div class="text-muted small">Scheduled</div>
+                                                <div class="fw-semibold">@WorkOrder.StartAtUtc.ToLocalTime().ToString("dd MMM yyyy HH:mm")</div>
+                                            </div>
+
+                                            <div class="col-6 col-md-2 mb-3 mb-md-0">
+                                                <div class="text-muted small">Duration</div>
+                                                <div class="fw-semibold">
+                                                    @TimeSpan.FromMinutes(WorkOrder.TotalDurationInMins).Humanize(precision: 2, maxUnit: TimeUnit.Hour, minUnit: TimeUnit.Minute)
+                                                </div>
+                                            </div>
+
+                                            <div class="col-6 col-md-2 mb-3 mb-md-0">
+                                                <div class="text-muted small">Labor</div>
+                                                <div class="fw-semibold">@WorkOrder.Labor!.Name</div>
+                                            </div>
+
+                                            <div class="col-6 col-md-1 mb-3 mb-md-0">
+                                                <div class="text-muted small">Spot</div>
+                                                <div class="fw-semibold">@WorkOrder.Spot</div>
+                                            </div>
+
+                                            <div class="col-6 col-md-2">
+                                                <div class="text-muted small">Status</div>
+                                                <span class="badge bg-success">@WorkOrder.State</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <!-- Repair Tasks Table -->
+                                        <div class="table-responsive">
+                                            <table class="table table-striped">
+                                                <tbody>
+                                                    @foreach (var task in WorkOrder.RepairTasks)
+                                                    {
+                                                        <!-- Task Header -->
+                                                        <tr class="align-middle bg-light">
+                                                            <td colspan="4">
+                                                                <i class="fas fa-tools me-2"></i>
+                                                                <strong>@task.Name</strong>
+                                                                <span class="ms-3 badge bg-primary">
+                                                                    Labor: $ @task.LaborCost 
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+
+                                                        <!-- Parts Table -->
+                                                        <tr>
+                                                            <td colspan="4">
+                                                                <div class="table-responsive ms-4">
+                                                                    <table class="table table-sm table-hover">
+                                                                        <thead class="table-light">
+                                                                            <tr>
+                                                                                <th>Part</th>
+                                                                                <th>Unit Cost</th>
+                                                                                <th>Qty</th>
+                                                                                <th>Subtotal</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            @foreach (var part in task.Parts)
+                                                                            {
+                                                                                <tr>
+                                                                                    <td>@part.Name</td>
+                                                                                    <td>@part.Cost.ToString("C", CultureInfo.GetCultureInfo("en-US"))</td>
+                                                                                    <td>@part.Quantity</td>
+                                                                                    <td>@((part.Cost * part.Quantity).ToString("C", CultureInfo.GetCultureInfo("en-US")))</td>
+                                                                                </tr>
+                                                                            }
+                                                                            @if (!task.Parts.Any())
+                                                                            {
+                                                                                <tr>
+                                                                                    <td colspan="4" class="text-center text-muted">
+                                                                                        No parts required for this task
+                                                                                    </td>
+                                                                                </tr>
+                                                                            }
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <!-- Job Totals -->
+                                        <div class="row mt-4">
+                                            <div class="col-lg-12">
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered align-middle">
+                                                        <tbody>
+                                                            <tr class="bg-light">
+                                                                <th>Total Labor:</th>
+                                                                <td class="text-end">@WorkOrder.TotalLaborCost.ToString("C", CultureInfo.GetCultureInfo("en-US"))</td>
+                                                            </tr>
+                                                            <tr class="bg-light">
+                                                                <th>Total Parts:</th>
+                                                                <td class="text-end">
+                                                                    @WorkOrder.TotalPartCost.ToString("C", CultureInfo.GetCultureInfo("en-US"))
+                                                                </td>
+                                                            </tr>
+                                                            <tr class="bg-dark text-white">
+                                                                <th>Grand Total:</th>
+                                                                <td class="text-end fw-bold fs-5">
+                                                                    $ @WorkOrder.TotalCost.ToString("C", CultureInfo.GetCultureInfo("en-US"))
+                                                                </td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Inject] private ServiceApi serviceApi { get; set; } = default!;
+
+    [Inject] private NavigationManager navigationManager { get; set; } = default!;
+
+    [Parameter] public Guid WorkOrderId { get; set; }
+
+    private WorkOrderModel? WorkOrder;
+
+    private bool InProgress => WorkOrder?.State == WorkOrderState.InProgress;
+
+    private bool IsComplete => WorkOrder?.State == WorkOrderState.Completed;
+
+    private bool IsScheduled => WorkOrder?.State == WorkOrderState.Scheduled;
+
+    private bool IsCancelled => WorkOrder?.State == WorkOrderState.Cancelled;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        var workOrderResult = await serviceApi.GetWorkOrderByIdAsync(WorkOrderId);
+
+        if (workOrderResult.IsSuccess)
+        {
+            WorkOrder = workOrderResult.Data;
+        }
+    }
+}

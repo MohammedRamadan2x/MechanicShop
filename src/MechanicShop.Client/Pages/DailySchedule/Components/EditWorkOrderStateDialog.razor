@@ -1,0 +1,153 @@
+﻿<div class="bg-body p-1">
+    <div class="bg-dark rounded-4 shadow-lg border-0 mb-4">
+        @if (IsReadonlyDueToOwnership)
+        {
+            <div class="alert alert-warning d-flex align-items-center" role="alert">
+                <i class="bi bi-shield-lock-fill me-2"></i>
+                <span>This work order is not assigned to you. You can view its state, but editing is disabled.</span>
+            </div>
+        }
+        <div class="progress-tracker-content p-1">
+            <!-- Progress Tracker -->
+            <div class="progress-tracker gap-3">
+                <div class="d-flex justify-content-between align-items-center position-relative m-3 ">
+                    <!-- Background Line -->
+                    <div class="progress-line-background"></div>
+                    <!-- Active Progress Line -->
+                    <div class="progress-line-active" style="width: calc(@(100 * _selectedIndex / (_states.Count - 1))% - 16px + @(32 * _selectedIndex / (_states.Count - 1))px)"></div>
+                    @for (int i = 0; i < _states.Count; i++)
+                    {
+                        var state = _states[i];
+                        var isCompleted = i < _selectedIndex;
+                        var isCurrent = i == _selectedIndex;
+                        var isUpcoming = i > _selectedIndex;
+                        var isDisabled = IsDisabled(state);
+                        <div class="step-wrapper @((isDisabled && !isCurrent) || IsReadonlyDueToOwnership ? "step-disabled" : "")"
+                             @onclick="() => { if ((!isDisabled || isCurrent) && !IsReadonlyDueToOwnership) NotifyChange(state); }">
+                            @if (isCompleted)
+                            {
+                                <!-- Completed Step -->
+                                <div class="step-circle step-completed">
+                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z" />
+                                    </svg>
+                                </div>
+                            }
+                            else if (isCurrent)
+                            {
+                                <!-- Current Step -->
+                                <div class="step-circle step-current">
+                                    <div class="step-current-dot"></div>
+                                </div>
+                            }
+                            else
+                            {
+                                <!-- Upcoming Step -->
+                                <div class="step-circle step-upcoming">
+                                    <div class="step-upcoming-dot"></div>
+                                </div>
+                            }
+                            <!-- Step Label -->
+                            <div class="step-label @(isCurrent ? "label-current" : isCompleted ? "label-completed" : "label-upcoming")">
+                                @state.ToString()
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Action Buttons -->
+    <div class="d-flex justify-content-end gap-3">
+        <button class="btn btn-outline-secondary" @onclick="Cancel">
+            <i class="bi bi-x-circle me-2"></i>Cancel
+        </button>
+        <button class="btn btn-primary" @onclick="Save" disabled="@(!_selectedState.HasValue || IsReadonlyDueToOwnership)">
+            <i class="bi bi-save me-2"></i>Save
+        </button>
+    </div>
+    @if (errorMessage != null)
+    {
+        <div class="alert alert-danger mt-3">
+            <strong>Error:</strong> @errorMessage
+        </div>
+    }
+</div>
+
+@code {
+    [Inject] public ServiceApi _serviceApi { get; set; } = default!;
+
+    [Parameter, EditorRequired] public WorkOrderState WorkOrderState { get; set; }
+
+    [Parameter, EditorRequired] public Guid WorkOrderId { get; set; }
+
+    [Parameter, EditorRequired] public DateTime StartAt { get; set; }
+
+    [Parameter, EditorRequired] public bool IsReadonlyDueToOwnership { get; set; }
+
+    [Parameter] public EventCallback OnChange { get; set; }
+
+    private List<WorkOrderState> _states = Enum.GetValues<WorkOrderState>().ToList();
+
+    private HashSet<WorkOrderState> _allowedTransitions = new ();
+
+    private WorkOrderState? _selectedState;
+
+    private int _selectedIndex => _states.IndexOf(_selectedState ?? default);
+
+    private string? errorMessage;
+
+    protected override void OnInitialized()
+    {
+        _selectedState = WorkOrderState;
+
+        _allowedTransitions = _states
+            .Where(state => CanTransitionTo(WorkOrderState, state))
+            .ToHashSet();
+    }
+
+    private void NotifyChange(WorkOrderState newState)
+    {
+        if (_selectedState == newState || IsDisabled(newState))
+            return;
+
+        _selectedState = newState;
+    }
+
+    private bool IsDisabled(WorkOrderState state) =>
+        !_allowedTransitions.Contains(state);
+
+    private async Task Save()
+    {
+        var updateWorkOrderStateResult = await _serviceApi.UpdateWorkOrderStateAsync(WorkOrderId, 
+            new UpdateWorkOrderStateRequest { State = _selectedState!.Value });
+
+        if (updateWorkOrderStateResult.IsSuccess)
+        {
+            await OnChange.InvokeAsync();
+            errorMessage = null;
+        }
+        else
+        {
+            errorMessage = updateWorkOrderStateResult.FirstErrorMessage;
+        } 
+    }
+
+    private async Task Cancel()
+    {
+        await OnChange.InvokeAsync(null);
+    }
+
+    private bool CanTransitionTo(WorkOrderState current, WorkOrderState target)
+    {
+        var now = DateTime.UtcNow;
+
+        return (current, target) switch
+        {
+            (WorkOrderState.Scheduled, WorkOrderState.InProgress) => now >= StartAt,
+            (WorkOrderState.InProgress, WorkOrderState.Completed) => true,
+            (_, WorkOrderState.Cancelled) when current != WorkOrderState.Completed => true,
+            _ => false
+        };
+    }
+}

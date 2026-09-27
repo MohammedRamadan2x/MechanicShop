@@ -1,0 +1,19 @@
+﻿<span class="badge fs-4"><i class="bi bi-circle-fill me-2 @GetSpotColor(Spot)"></i>@Spot.ToString()</span>
+
+@code {
+
+    [Parameter]
+    public Spot Spot { get; set; }
+
+    private string GetSpotColor(Spot spotNumber)
+    {
+        return spotNumber switch
+        {
+            Spot.A => "text-primary",
+            Spot.B => "text-danger",
+            Spot.C => "text-success",
+            Spot.D => "text-warning",
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+}

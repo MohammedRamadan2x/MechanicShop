@@ -1,0 +1,104 @@
+﻿<div class="bg-body p-1">
+    <EditForm Model="@relocationModel" OnValidSubmit="Save">
+        <div class="my-4">
+
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <div class="row">
+                    <div class="col-6">
+                        <label class="form-label">New Date</label>
+                        <InputDate @bind-Value="_localDate" class="form-control" />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">New Time</label>
+                        <InputSelect class="form-select" @bind-Value="_localTime">
+                            @foreach (var time in TimeOptions)
+                            {
+                                <option value="@time">@time.ToString(@"hh\:mm")</option>
+                            }
+                        </InputSelect>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="spot" class="form-label">New Spot</label>
+                <InputSelect class="form-select" id="spot" @bind-Value="relocationModel!.NewSpot">
+                    @foreach (Spot spot in Enum.GetValues(typeof(Spot)))
+                    {
+                        <option value="@spot">@spot</option>
+                    }
+                </InputSelect>
+            </div>
+
+        </div>
+        <div class="d-flex justify-content-end gap-3">
+            <button type="button" class="btn btn-outline-secondary" @onclick="Cancel">
+                <i class="bi bi-x-circle me-2"></i>Cancel
+            </button>
+            <button class="btn btn-primary" type="submit">
+                <i class="bi bi-save me-2"></i>Save
+            </button>
+        </div>
+    </EditForm>
+    @if (errorMessage != null)
+    {
+        <div class="alert alert-danger mt-3">
+            <strong>Error:</strong> @errorMessage
+        </div>
+    }
+</div>
+@code {
+    [Inject] public ServiceApi _serviceApi { get; set; } = default!;
+
+    [Parameter, EditorRequired] public Guid WorkOrderId { get; set; }
+
+    [Parameter, EditorRequired] public DateTimeOffset StartAt { get; set; }
+    [Parameter, EditorRequired] public Spot CurrentSpot { get; set; }
+
+    [Parameter] public EventCallback OnChange { get; set; }
+
+    private DateTime _localDate;
+    private TimeSpan _localTime;
+
+    private string? errorMessage;
+
+    private RelocateWorkOrderRequest? relocationModel;
+
+
+    protected override void OnInitialized()
+    {
+        _localDate = StartAt.LocalDateTime.Date;
+        _localTime = StartAt.LocalDateTime.TimeOfDay;
+
+        relocationModel = new RelocateWorkOrderRequest
+        {
+            NewStartAtUtc = StartAt, // temp
+            NewSpot = CurrentSpot
+        };
+    } 
+
+    private static List<TimeSpan> TimeOptions =>
+    Enumerable.Range(0, 96).Select(i => TimeSpan.FromMinutes(i * 15)).ToList();
+
+    private async Task Save()
+    {
+        var local = _localDate + _localTime;
+        var offset = TimeZoneInfo.Local.GetUtcOffset(local);
+        relocationModel!.NewStartAtUtc = new DateTimeOffset(local, offset);
+
+        var result = await _serviceApi.RelocateWorkOrderAsync(WorkOrderId, relocationModel);
+
+        if (result.IsSuccess)
+            await OnChange.InvokeAsync();
+        else
+            errorMessage = result.FirstErrorMessage;
+    }
+
+    private async Task Cancel()
+    {
+        await OnChange.InvokeAsync(null);
+    }
+}

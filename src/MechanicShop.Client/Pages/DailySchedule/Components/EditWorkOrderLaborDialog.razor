@@ -1,0 +1,98 @@
+﻿<div class="bg-body p-1">
+    <div class="my-4">
+        @if (_labors is not null)
+        {
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                @foreach (var labor in _labors)
+                {
+                    <div class="col">
+                        <div class="card h-100 border @GetCardBorder(labor.LaborId)"
+                        @onclick="() => _selectedLabor = labor">
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <h5 class="card-title mb-0">
+                                        <i class="bi bi-person-arms-up me-2"></i> @labor.Name
+                                    </h5>
+                                    @if (_selectedLabor.LaborId == labor.LaborId)
+                                    {
+                                        <i class="bi bi-check-circle-fill text-success"></i>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center my-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+
+    </div>
+    <div class="d-flex justify-content-end gap-3">
+        <button class="btn btn-outline-secondary" @onclick="Cancel">
+            <i class="bi bi-x-circle me-2"></i>Cancel
+        </button>
+        <button class="btn btn-primary" @onclick="Save" disabled="@string.IsNullOrWhiteSpace(_selectedLabor?.LaborId)">
+            <i class="bi bi-save me-2"></i>Save
+        </button>
+    </div>
+    @if (errorMessage != null)
+    {
+        <div class="alert alert-danger mt-3">
+            <strong>Error:</strong> @errorMessage
+        </div>
+    }
+</div>
+@code {
+    [Inject] private ServiceApi _serviceApi { get; set; } = default!;
+
+    private List<LaborModel>? _labors;
+    private LaborModel _selectedLabor = default!;
+    private string? errorMessage;
+
+    [Parameter, EditorRequired] public Guid WorkOrderId { get; set; }
+
+    [Parameter, EditorRequired] public LaborModel SelectedLabor { get; set; } = default!;
+
+    [Parameter] public EventCallback OnChange { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var laborsResult = await _serviceApi.GetLaborsAsync();
+
+        if (laborsResult.IsSuccess)
+        {
+            _labors = laborsResult.Data;
+            _selectedLabor = SelectedLabor;
+        }
+    }
+
+    private string GetCardBorder(string laborId) =>
+        _selectedLabor.LaborId == laborId ? "border-success" : "border-secondary";
+
+    private async Task Save()
+    {
+        var updateWorkOrderLaborResult = await _serviceApi.UpdateWorkOrderLaborAsync(WorkOrderId,
+            new AssignLaborRequest { LaborId = Guid.Parse(_selectedLabor.LaborId) });
+
+        if (updateWorkOrderLaborResult.IsSuccess)
+        {
+            await OnChange.InvokeAsync(); 
+        }
+        else
+        {
+            errorMessage = updateWorkOrderLaborResult.FirstErrorMessage;
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await OnChange.InvokeAsync(null);
+    }
+}

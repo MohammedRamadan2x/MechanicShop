@@ -1,0 +1,201 @@
+﻿@implements IAsyncDisposable
+
+<header class="dashboard-header">
+    <p class="lead text-muted">
+        Statistics for
+        <span id="dashboardDate">@data?.Date.ToString("MMMM dd, yyyy")</span>
+    </p>
+</header>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-5 g-4 mb-4">
+    <div class="col">
+        <div class="card card-total">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-list-ol"></i> Total Orders</h5>
+                <p class="card-text">@data?.Total</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card card-Scheduled bg-warning bg-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-hourglass-split"></i> Scheduled</h5>
+                <p class="card-text">@data?.Scheduled</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card card-in-progress bg-info bg-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-gear-fill"></i> In Progress</h5>
+                <p class="card-text">@data?.InProgress</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card card-completed bg-success bg-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-check-circle-fill"></i> Completed</h5>
+                <p class="card-text">@data?.Completed</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card card-cancelled bg-danger bg-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-x-circle-fill"></i> Cancelled</h5>
+                <p class="card-text">@data?.Cancelled</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-4">
+    <div class="col">
+        <div class="card card-revenue bg-secondary bg-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-currency-dollar"></i> Total Revenue</h5>
+                <p class="card-text">@FormatCurrency(data?.TotalRevenue ?? 0)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card card-cost bg-secondary bg-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-hammer"></i> Total Parts Cost</h5>
+                <p class="card-text">@FormatCurrency(data?.TotalPartsCost ?? 0)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card card-cost bg-secondary bg-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-person-fill-gear"></i> Total Labor Cost</h5>
+                <p class="card-text">@FormatCurrency(data?.TotalLaborCost ?? 0)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card card-profit bg-secondary bg-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-cash-stack"></i> Net Profit</h5>
+                <p class="card-text">@FormatCurrency(data?.NetProfit ?? 0)</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-4">
+    <div class="col">
+        <div class="card card-vehicles bg-secondary bg-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-car-front-fill"></i> Unique Vehicles</h5>
+                <p class="card-text">@data?.UniqueVehicles</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card card-customers bg-secondary bg-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-person-lines-fill"></i> Unique Customers</h5>
+                <p class="card-text">@data?.UniqueCustomers</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card card-rate bg-secondary bg-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-graph-up-arrow"></i> Profit Margin</h5>
+                <p class="card-text">@string.Format("{0:F2}%", data?.ProfitMargin ?? 0)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card card-rate bg-secondary bg-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-clipboard-data-fill"></i> Completion Rate</h5>
+                <p class="card-text">@string.Format("{0:F2}%", data?.CompletionRate ?? 0)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card card-average bg-secondary bg-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-graph-down-arrow"></i> Avg. Revenue/Order</h5>
+                <p class="card-text">@FormatCurrency(data?.AverageRevenuePerOrder ?? 0)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card card-average bg-secondary bg-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-speedometer2"></i> Orders Per Vehicle</h5>
+                <p class="card-text">@string.Format("{0:F2}", data?.OrdersPerVehicle ?? 0)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card card-rate bg-secondary bg-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-pie-chart-fill"></i> Parts Cost Ratio</h5>
+                <p class="card-text">@string.Format("{0:F2}%", data?.PartsCostRatio ?? 0)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card card-rate bg-secondary bg-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-person-badge-fill"></i> Labor Cost Ratio</h5>
+                <p class="card-text">@string.Format("{0:F2}%", data?.LaborCostRatio ?? 0)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card card-rate bg-secondary bg-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-dash-circle-fill"></i> Cancellation Rate</h5>
+                <p class="card-text">@string.Format("{0:F2}%", data?.CancellationRate ?? 0)</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Inject]
+    private ServiceApi _serviceApi { get; set; } = default!;
+
+    [Inject]
+    private WorkOrderHubClient _hubClient { get; set; } = default!;
+
+    private TodayWorkOrderStatsModel? data;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await _hubClient.StartAsync(RefreshDashboard);
+
+        await RefreshDashboard();
+    }
+
+    private string FormatCurrency(decimal amount)
+    {
+        return amount.ToString("C", CultureInfo.GetCultureInfo("en-us"));
+    }
+
+    private async Task RefreshDashboard()
+    {
+        var statsData = await _serviceApi.GetTodayWorkOrderStatsAsync();
+
+        if (statsData.IsSuccess)
+        {
+            data = statsData.Data;
+            StateHasChanged();
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _hubClient.StopListening();
+
+        return ValueTask.CompletedTask;
+    }
+} 

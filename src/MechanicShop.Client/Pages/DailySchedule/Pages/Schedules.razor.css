@@ -1,0 +1,5 @@
+﻿.blur-effect {
+    filter: blur(4px); /* Adjust the blur intensity as needed */
+    pointer-events: none; /* Prevent user interaction while loading */
+    opacity: 0.5; /* Optional: lower opacity for a better effect */
+}

@@ -1,0 +1,8 @@
+﻿@code {
+    [Parameter]
+    public TimeOnly Time { get; set; }
+}
+
+<div class="text-muted fw-bold" style="height:60px;">
+    @Time.ToString(@"HH\:mm")
+</div>

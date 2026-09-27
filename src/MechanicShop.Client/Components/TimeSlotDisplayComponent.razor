@@ -1,0 +1,17 @@
+﻿@{
+    var start = StartAt.ToLocalTime();
+    var end = EndAt.ToLocalTime();
+}
+
+<div class="fs-6 badge border border-secondary bg-opacity-25 rounded text-center d-inline-flex align-items-center gap-1 px-2 py-2">
+    <strong class="me-2 text-muted">@start.ToString("yyyy-MM-dd")</strong>
+    <span class="badge badge bg-secondary">@start.ToString("HH:mm")</span>
+    <span>→</span>
+    <span class="badge badge bg-secondary">@end.ToString("HH:mm")</span>
+</div>
+
+
+@code {
+    [Parameter, EditorRequired] public DateTimeOffset StartAt { get; set; }
+    [Parameter, EditorRequired] public DateTimeOffset EndAt { get; set; }
+}

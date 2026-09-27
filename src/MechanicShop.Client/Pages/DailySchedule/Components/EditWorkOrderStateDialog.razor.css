@@ -1,0 +1,179 @@
+﻿/* Dark Theme Progress Tracker Styles */
+.progress-tracker {
+    position: relative;
+    width: 100%;
+}
+
+/* Progress Lines */
+.progress-line-background {
+    position: absolute;
+    left: 16px; /* Half of circle width (32px) */
+    right: 16px; /* Half of circle width (32px) */
+    height: 3px;
+    background: rgba(255, 255, 255, 0.2); /* Light gray for dark theme */
+    border-radius: 2px;
+    z-index: 1;
+}
+
+.progress-line-active {
+    position: absolute;
+    left: 16px; /* Half of circle width (32px) */
+    height: 3px;
+    background: linear-gradient(90deg, #28a745, #20c997); /* Green gradient */
+    border-radius: 2px;
+    z-index: 2;
+    transition: width 0.3s ease;
+}
+
+.progress-line-background,
+.progress-line-active {
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Step Wrapper */
+.step-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 3;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+    .step-wrapper:hover:not(.step-disabled) {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .step-wrapper.step-disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+
+/* Step Circles */
+.step-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+/* Completed Step */
+.step-completed {
+    background: #28a745; /* Green background */
+    color: white;
+    border-color: #28a745;
+    box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.2);
+}
+
+.step-current {
+    background: #28a745; /* Green background */
+    border: 3px solid #28a745 !important; /* Green border */
+    box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.3);
+    animation: pulse 2s infinite;
+}
+
+.step-current-dot {
+    width: 12px;
+    height: 12px;
+    background: #1e7e34; /* darker green */
+    border-radius: 50%;
+}
+
+/* Upcoming Step */
+.step-upcoming {
+    background: rgba(255, 255, 255, 0.1); /* Semi-transparent white */
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+    .step-upcoming:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.5);
+    }
+
+.step-upcoming-dot {
+    width: 8px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+}
+
+/* Step Labels */
+.step-label {
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    min-width: 60px;
+    transition: all 0.2s ease;
+}
+
+.label-completed {
+    color: #28a745; /* Green text */
+    font-weight: 600;
+}
+
+.label-current {
+    color: #28a745 !important;
+    font-weight: 700;
+    text-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
+}
+
+.label-upcoming {
+    color: rgba(255, 255, 255, 0.7); /* Light gray text */
+}
+
+.step-wrapper:hover:not(.step-disabled) .label-upcoming {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Disabled State */
+.step-disabled .step-circle {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: none !important;
+}
+
+.step-disabled .step-label {
+    color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Pulse Animation for Current Step */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 0 8px rgba(40, 167, 69, 0.1);
+    }
+
+    100% {
+        box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.3);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .step-circle {
+        width: 28px;
+        height: 28px;
+    }
+
+    .step-label {
+        font-size: 11px;
+        min-width: 50px;
+    }
+
+    .step-wrapper {
+        padding: 6px;
+    }
+}

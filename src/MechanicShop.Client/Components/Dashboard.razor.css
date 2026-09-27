@@ -1,0 +1,121 @@
+﻿.dashboard-header {
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.card {
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease-in-out;
+    height: 100%; /* Ensure cards in a row have equal height */
+}
+
+    .card:hover {
+        transform: translateY(-5px);
+    }
+
+.card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+}
+
+    .card-title i {
+        margin-right: 10px;
+        font-size: 1.4rem;
+        color: #6c757d; /* Default icon color */
+    }
+
+.card-text {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #aaa;
+    line-height: 1;
+}
+
+.card-subtitle {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-top: 5px;
+}
+/* Specific icon colors */
+.card-total i {
+    color: #0d6efd;
+}
+/* Blue */
+.card-Scheduled i {
+    color: #ffc107;
+}
+/* Yellow */
+.card-in-progress i {
+    color: #17a2b8;
+}
+/* Teal */
+.card-completed i {
+    color: #28a745;
+}
+/* Green */
+.card-cancelled i {
+    color: #dc3545;
+}
+/* Red */
+.card-revenue i {
+    color: #6f42c1;
+}
+/* Purple */
+.card-cost i {
+    color: #fd7e14;
+}
+/* Orange */
+.card-profit i {
+    color: #20c997;
+}
+/* Mint */
+.card-vehicles i {
+    color: #6610f2;
+}
+/* Indigo */
+.card-customers i {
+    color: #e83e8c;
+}
+/* Pink */
+.card-rate i {
+    color: #0dcaf0;
+}
+/* Cyan */
+.card-average i {
+    color: #6c757d;
+}
+/* Gray */
+
+.section-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin-bottom: 25px;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 10px;
+    color: #495057;
+}
+
+/* Responsive adjustments for card text */
+@media (max-width: 767.98px) {
+    .card-text {
+        font-size: 1.8rem;
+    }
+
+    .card-title {
+        font-size: 1rem;
+    }
+
+        .card-title i {
+            font-size: 1.2rem;
+        }
+}

@@ -1,0 +1,107 @@
+﻿@page "/login" 
+
+
+<div class="d-flex align-items-center justify-content-center">
+    <AuthorizeView>
+        <Authorized>
+            <div class="alert alert-success">
+                You're logged in as @context.User.Identity?.Name.
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="card shadow rounded w-100" style="max-width: 800px;">
+                <div class="row g-0">
+                    <div class="col-md-7 p-5">
+                        <EditForm Model="loginRequest" OnValidSubmit="HandleLogin" Context="loginFormContext">
+                            <DataAnnotationsValidator />
+
+                            <div class="mb-3">
+                                <label>Username <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <div class="input-group-text"><i class="bi bi-person-fill"></i></div>
+                                    <InputText class="form-control" @bind-Value="loginRequest.Email" placeholder="Enter Username" />
+                                </div>
+                                <ValidationMessage For="@(() => loginRequest.Email)" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label>Password <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <div class="input-group-text"><i class="bi bi-lock-fill"></i></div>
+                                    <InputText type="password" class="form-control" @bind-Value="loginRequest.Password" placeholder="Enter Password" />
+                                </div>
+                                <ValidationMessage For="@(() => loginRequest.Password)" />
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <div class="form-check">
+                                        <InputCheckbox class="form-check-input" @bind-Value="loginRequest.RememberMe" id="remember" />
+                                        <label class="form-check-label" for="remember">Remember me</label>
+                                    </div>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <a href="#" class="text-primary">Forgot Password?</a>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100">Login</button>
+                        </EditForm>
+
+                        @if (errors)
+                        {
+                            <div class="alert alert-danger mt-3">
+                                <ul class="mb-0">
+                                    @foreach (var error in errorList)
+                                    {
+                                        <li>@error</li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="col-md-5 d-none d-md-flex align-items-center justify-content-center text-secondary">
+                        <i class="bi bi-lock-fill display-1"></i>
+
+                    </div>
+                </div>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    [Inject]
+    private IAccountManagement accountManagement { get; set; } = default!;
+    [Inject]
+    private NavigationManager navigationManager { get; set; } = default!;
+
+    private LoginRequest loginRequest = new ();
+
+    private bool success, errors;
+    private string[] errorList = [];
+
+    private async Task HandleLogin()
+    {
+        success = errors = false;
+        errorList = [];
+
+
+        var result = await accountManagement.LoginAsync(loginRequest.Email, loginRequest.Password);
+
+        if (result.Succeeded)
+        {
+
+            success = true;
+            errors = false;
+            navigationManager.NavigateTo("/");
+        }
+        else
+        {
+            errors = true;
+            errorList = result.ErrorList;
+        }
+    }
+}
+

@@ -1,0 +1,568 @@
+﻿@page "/repair-tasks"
+@attribute [Authorize]
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1 text-body-emphasis">
+                <i class="bi bi-tools me-2"></i>Repair Tasks
+            </h1>
+            <p class="text-muted mb-0">Manage repair tasks and track costs</p>
+        </div>
+        <button class="btn btn-primary btn-lg" @onclick="ShowCreateModal">
+            <i class="bi bi-plus-lg me-1"></i>
+            New Task
+        </button>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="card border mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0 ps-0" placeholder="Search repair tasks..."
+                            @bind="searchTerm" @oninput="OnSearchChanged">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" @bind="sortBy" @bind:after="ApplyFilters">
+                        <option value="name">Sort by Name</option>
+                        <option value="cost">Sort by Total Cost</option>
+                        <option value="duration">Sort by Duration</option>
+                        <option value="labor">Sort by Labor Cost</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" id="asc" @onchange="() => SetSortDirection(true)"
+                            checked="@sortAscending">
+                        <label class="btn btn-outline-secondary" for="asc">
+                            <i class="bi bi-sort-up"></i>
+                        </label>
+                        <input type="radio" class="btn-check" id="desc" @onchange="() => SetSortDirection(false)"
+                            checked="@(!sortAscending)">
+                        <label class="btn btn-outline-secondary" for="desc">
+                            <i class="bi bi-sort-down"></i>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Repair Tasks List -->
+    <div class="row g-4">
+        @if (filteredTasks.Any())
+        {
+            @foreach (var task in filteredTasks)
+            {
+                <div class="col-xl-4 col-lg-6">
+                    <div class="card border-0 shadow-sm bg-body-secondary h-100 task-card">
+                        <div
+                            class="card-header bg-transparent border-bottom-0 d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h5 class="card-title mb-1 text-truncate">@task.Name</h5>
+                                <div class="d-flex align-items-center text-muted small">
+                                    <i class="bi bi-clock me-1"></i>
+                                    @TimeSpan.FromMinutes((int)task.EstimatedDurationInMins).ToString(@"h\h\ m\m")
+                                </div>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-link text-muted p-1" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="#" @onclick="() => ShowEditModal(task)"
+                                            @onclick:preventDefault="true">
+                                            <i class="bi bi-pencil me-2"></i>Edit
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#" @onclick="() => ShowDeleteModal(task)"
+                                            @onclick:preventDefault="true">
+                                            <i class="bi bi-trash me-2"></i>Delete
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-body pt-0">
+                            <div class="row g-3 mb-3">
+                                <div class="col-6">
+                                    <div class="text-center">
+                                        <div class="text-muted small">Labor Cost</div>
+                                        <div class="fw-bold text-primary">
+                                            @task.LaborCost.ToString("C2",
+                                            System.Globalization.CultureInfo.GetCultureInfo("en-US"))
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <div class="text-muted small">Total Cost</div>
+                                <div class="fw-bold text-success">@task.TotalCost.ToString("C2",
+                                                                        System.Globalization.CultureInfo.GetCultureInfo("en-US"))</div>
+                            </div>
+                        </div>
+                    </div>
+
+                            <div class="border-top pt-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted small">Parts (@task.Parts.Count)</span>
+                                    <span class="badge bg-secondary">@task.Parts.Sum(p => p.Cost * p.Quantity).ToString("C2",
+                                                                System.Globalization.CultureInfo.GetCultureInfo("en-US"))</span>
+                        </div>
+
+                        @if (task.Parts.Any())
+                                {
+                                    <div class="parts-preview">
+                                        @foreach (var part in task.Parts.Take(3))
+                                        {
+                                            <div class="d-flex justify-content-between align-items-center py-1">
+                                                <span class="text-truncate small">@part.Name</span>
+                                                <span class="text-muted small">@part.Quantity × $@part.Cost</span>
+                                            </div>
+                                        }
+                                        @if (task.Parts.Count > 3)
+                                        {
+                                            <div class="text-muted small text-center mt-1">
+                                                +@(task.Parts.Count - 3) more parts
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-muted small text-center py-2">No parts added</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="bi bi-search display-1 text-muted opacity-50"></i>
+                    </div>
+                    <h4 class="text-muted">No repair tasks found</h4>
+                    <p class="text-muted">@(string.IsNullOrEmpty(searchTerm) ? "Start by creating your first repair task." :
+                                            "Try adjusting your search criteria.")</p>
+                    @if (string.IsNullOrEmpty(searchTerm))
+                    {
+                        <button class="btn btn-primary" @onclick="ShowCreateModal">
+                            <i class="bi bi-plus-lg me-1"></i>Create Repair Task
+                        </button>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<TemplatedDialog Show="_showDialog" OnClose="HideDialog" Title="_dialogTitle">
+    @if (!isEditMode)
+    {
+        <EditForm Model="newTaskRequest" OnValidSubmit="SaveTask">
+            <ObjectGraphDataAnnotationsValidator />
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label">Task Name <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="newTaskRequest.Name" />
+                    <ValidationMessage For="@(() => newTaskRequest.Name)" class="text-danger small" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Labor Cost <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <InputNumber class="form-control" @bind-Value="newTaskRequest.LaborCost" />
+                    </div>
+                    <ValidationMessage For="@(() => newTaskRequest.LaborCost)" class="text-danger small" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Duration (minutes) <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="newTaskRequest.EstimatedDurationInMins">
+                        <option value="">-- Select Duration --</option>
+                        @foreach (var value in Enum.GetValues<RepairDurationInMinutes>())
+                        {
+                            <option value="@value">@value</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => newTaskRequest.EstimatedDurationInMins)" class="text-danger small" />
+                </div>
+            </div>
+
+            <div class="border-top pt-4 mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Parts Required <span class="text-danger">*</span></h6>
+                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddPart">
+                        <i class="bi bi-plus me-1"></i>Add Part
+                    </button>
+                </div>
+
+                @if (newTaskRequest.Parts.Any())
+                {
+                    <div class="row g-3 mb-2">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Part Name</label>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Cost</label>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Quantity</label>
+                        </div>
+                        <div class="col-md-1">
+                        </div>
+                    </div>
+                    @for (int i = 0; i < newTaskRequest.Parts.Count; i++)
+                    {
+                        var index = i;
+                        <div class="row g-3 mb-2">
+                            <div class="col-md-6">
+                                <InputText class="form-control" @bind-Value="newTaskRequest.Parts[index].Name"
+                                    placeholder="Enter part name" />
+                                <ValidationMessage For="@(() => newTaskRequest.Parts[index].Name)" class="text-danger small" />
+                            </div>
+                            <div class="col-md-3">
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <InputNumber class="form-control" @bind-Value="newTaskRequest.Parts[index].Cost" />
+                                </div>
+                                <ValidationMessage For="@(() => newTaskRequest.Parts[index].Cost)" class="text-danger small" />
+                            </div>
+                            <div class="col-md-2">
+                                <InputNumber class="form-control" @bind-Value="newTaskRequest.Parts[index].Quantity" />
+                                <ValidationMessage For="@(() => newTaskRequest.Parts[index].Quantity)" class="text-danger small" />
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-link link-danger btn-sm p-1" @onclick="() => RemovePart(index)"
+                                    disabled="@(newTaskRequest.Parts.Count <= 1)" title="Remove part">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                }
+
+                <ValidationMessage For="@(() => newTaskRequest.Parts)" class="text-danger small" />
+            </div>
+
+            <div class="modal-footer mt-4 pt-3 border-top">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-1"></i>
+                    Create Task
+                </button>
+                <button type="button" class="btn btn-secondary" @onclick="HideDialog">Cancel</button>
+            </div>
+        </EditForm>
+    }
+    else
+    {
+        <EditForm Model="updateTaskRequest" OnValidSubmit="SaveTask">
+            <ObjectGraphDataAnnotationsValidator />
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label">Task Name <span class="text-danger">*</span></label>
+                    <InputText class="form-control" @bind-Value="updateTaskRequest.Name" />
+                    <ValidationMessage For="@(() => updateTaskRequest.Name)" class="text-danger small" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Labor Cost <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <InputNumber class="form-control" @bind-Value="updateTaskRequest.LaborCost" />
+                    </div>
+                    <ValidationMessage For="@(() => updateTaskRequest.LaborCost)" class="text-danger small" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Duration (minutes) <span class="text-danger">*</span></label>
+                    <InputSelect class="form-select" @bind-Value="updateTaskRequest.EstimatedDurationInMins">
+                        <option value="">-- Select Duration --</option>
+                        @foreach (var value in Enum.GetValues<RepairDurationInMinutes>())
+                        {
+                            <option value="@value">@value</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => updateTaskRequest.EstimatedDurationInMins)" class="text-danger small" />
+                </div>
+            </div>
+
+            <div class="border-top pt-4 mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Parts Required <span class="text-danger">*</span></h6>
+                    <button type="button" class="btn btn-outline-primary btn-sm" @onclick="AddPart">
+                        <i class="bi bi-plus me-1"></i>Add Part
+                    </button>
+                </div>
+
+                @if (updateTaskRequest.Parts.Any())
+                {
+                    <div class="row g-3 mb-2">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Part Name</label>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Cost</label>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-semibold">Quantity</label>
+                        </div>
+                        <div class="col-md-1">
+                        </div>
+                    </div>
+                    @for (int i = 0; i < updateTaskRequest.Parts.Count; i++)
+                    {
+                        var index = i;
+                        <div class="row g-3 mb-2">
+                            <div class="col-md-6">
+                                <InputText class="form-control" @bind-Value="updateTaskRequest.Parts[index].Name"
+                                    placeholder="Enter part name" />
+                                <ValidationMessage For="@(() => updateTaskRequest.Parts[index].Name)" class="text-danger small" />
+                            </div>
+                            <div class="col-md-3">
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <InputNumber class="form-control" @bind-Value="updateTaskRequest.Parts[index].Cost" />
+                                </div>
+                                <ValidationMessage For="@(() => updateTaskRequest.Parts[index].Cost)" class="text-danger small" />
+                            </div>
+                            <div class="col-md-2">
+                                <InputNumber class="form-control" @bind-Value="updateTaskRequest.Parts[index].Quantity" />
+                                <ValidationMessage For="@(() => updateTaskRequest.Parts[index].Quantity)"
+                                    class="text-danger small" />
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-link link-danger btn-sm p-1"
+                                    @onclick="() => RemovePartFromUpdate(index)" disabled="@(updateTaskRequest.Parts.Count <= 1)"
+                                    title="Remove part">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                }
+
+                <ValidationMessage For="@(() => updateTaskRequest.Parts)" class="text-danger small" />
+            </div>
+
+            <div class="modal-footer mt-4 pt-3 border-top">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-lg me-1"></i>
+                    Update Task
+                </button>
+                <button type="button" class="btn btn-secondary" @onclick="HideDialog">Cancel</button>
+            </div>
+        </EditForm>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger mt-3">
+                <strong>Error:</strong> @errorMessage
+            </div>
+        }
+    }
+</TemplatedDialog>
+
+@code {
+    [Inject] private ServiceApi serviceApi { get; set; } = default!;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    private List<RepairTaskModel> repairTasks = new();
+    private List<RepairTaskModel> filteredTasks = new();
+    private CreateRepairTaskRequest newTaskRequest = new();
+    private UpdateRepairTaskRequest updateTaskRequest = new();
+    private bool isEditMode = false;
+    private Guid editingTaskId;
+    private string searchTerm = "";
+    private string sortBy = "name";
+    private bool sortAscending = true;
+
+    private bool _showDialog = false;
+    private RenderFragment? _dialogTitle;
+
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRepairTasks();
+        ApplyFilters();
+    }
+
+    private async Task LoadRepairTasks()
+    {
+        var repairTaskResult = await serviceApi.GetRepairTasksAsync();
+        if (repairTaskResult.IsSuccess)
+        {
+            repairTasks = repairTaskResult.Data!;
+        }
+    }
+
+    private void OnSearchChanged(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? "";
+        ApplyFilters();
+    }
+
+    private void SetSortDirection(bool ascending)
+    {
+        sortAscending = ascending;
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        var filtered = repairTasks.AsEnumerable();
+
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            filtered = filtered.Where(t =>
+            t.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+            t.Parts.Any(p => p.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        filtered = sortBy switch
+        {
+            "cost" => sortAscending ? filtered.OrderBy(t => t.TotalCost) : filtered.OrderByDescending(t => t.TotalCost),
+            "duration" => sortAscending ? filtered.OrderBy(t => t.EstimatedDurationInMins) : filtered.OrderByDescending(t =>
+            t.EstimatedDurationInMins),
+            "labor" => sortAscending ? filtered.OrderBy(t => t.LaborCost) : filtered.OrderByDescending(t => t.LaborCost),
+            _ => sortAscending ? filtered.OrderBy(t => t.Name) : filtered.OrderByDescending(t => t.Name)
+        };
+
+        filteredTasks = filtered.ToList();
+    }
+
+    private void ShowCreateModal()
+    {
+        isEditMode = false;
+        newTaskRequest = new CreateRepairTaskRequest();
+        AddPart();
+        _dialogTitle = builder => builder.AddContent(0, "Create New Repair Task");
+        _showDialog = true;
+        errorMessage = null;
+    }
+
+    private void ShowEditModal(RepairTaskModel task)
+    {
+        isEditMode = true;
+        editingTaskId = task.RepairTaskId;
+        updateTaskRequest = new UpdateRepairTaskRequest
+        {
+            Name = task.Name,
+            LaborCost = task.LaborCost,
+            EstimatedDurationInMins = task.EstimatedDurationInMins,
+            Parts = task.Parts.Select(p => new UpdateRepairTaskPartRequest
+            {
+                PartId = p.PartId,
+                Name = p.Name,
+                Cost = p.Cost,
+                Quantity = p.Quantity
+            }).ToList()
+        };
+        _dialogTitle = builder => builder.AddContent(0, "Edit Repair Task");
+        _showDialog = true;
+        errorMessage = null;
+    }
+
+    private void HideDialog()
+    {
+        _showDialog = false;
+        errorMessage = null;
+    }
+
+    private void AddPart()
+    {
+        if (!isEditMode)
+        {
+            newTaskRequest.Parts.Add(new CreateRepairTaskPartRequest { Name = "", Cost = 0, Quantity = 1 });
+        }
+        else
+        {
+            updateTaskRequest.Parts.Add(new UpdateRepairTaskPartRequest { Name = "", Cost = 0, Quantity = 1 });
+        }
+    }
+
+    private void RemovePart(int index)
+    {
+        if (newTaskRequest.Parts.Count > 1)
+        {
+            newTaskRequest.Parts.RemoveAt(index);
+        }
+    }
+
+    private void RemovePartFromUpdate(int index)
+    {
+        if (updateTaskRequest.Parts.Count > 1)
+        {
+            updateTaskRequest.Parts.RemoveAt(index);
+        }
+    }
+
+    private async Task SaveTask()
+    {
+        errorMessage = null;
+
+        if (isEditMode)
+        {
+            var task = repairTasks.FirstOrDefault(t => t.RepairTaskId == editingTaskId);
+            if (task != null)
+            {
+                var updateTaskResult = await serviceApi.UpdateRepairTaskAsync(task.RepairTaskId, updateTaskRequest);
+
+                if (updateTaskResult.IsSuccess)
+                {
+                    HideDialog();
+                    await LoadRepairTasks();
+                    ApplyFilters();
+                }
+                else
+                {
+                    errorMessage = updateTaskResult.FirstErrorMessage;
+                }
+            }
+        }
+        else
+        {
+            var createTaskResult = await serviceApi.CreateRepairTaskAsync(newTaskRequest);
+
+            if (createTaskResult.IsSuccess)
+            {
+                HideDialog();
+                repairTasks.Add(createTaskResult.Data!);
+                ApplyFilters();
+            }
+            else
+            {
+                errorMessage = createTaskResult.FirstErrorMessage;
+            }
+        }
+    }
+
+    private async Task ShowDeleteModal(RepairTaskModel task)
+    {
+        var message = $"Delete RepairTask?\n\n" +
+        $"⏰ Name: {task.Name} ➔ {task.TotalCost.ToString("C", CultureInfo.GetCultureInfo("en-US"))}\n" +
+        $"🛠️ Parts: {string.Join(", ", task.Parts.Select(p => $"{p.Name} (${p.Cost:F2})"))}\n";
+
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", message);
+
+        if (confirmed)
+        {
+            await serviceApi.DeleteRepairTaskAsync(task.RepairTaskId);
+            await LoadRepairTasks();
+            ApplyFilters();
+        }
+    }
+}

@@ -1,0 +1,155 @@
+﻿@page "/invoice/{InvoiceId:guid}"
+@attribute [Authorize(Roles = "Manager")]
+
+<h3 class="my-4 border-start border-5 p-2">
+    <i class="bi bi-receipt mx-2"></i> Invoice Summary
+</h3>
+
+@if (invoice == null)
+{
+    <div class="text-center my-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="d-flex justify-content-end my-3">
+
+        @if (invoice.PaymentStatus == nameof(InvoiceStatus.Unpaid))
+        {
+            <button class="btn btn-success" @onclick="SettleInvoice">
+                <i class="bi bi-cash-coin me-1"></i> Settle Invoice
+            </button>
+        }
+        else
+        {
+            <button class="btn btn-outline-primary" @onclick="DownloadPdf">
+                <i class="bi bi-file-earmark-pdf-fill"></i> Download PDF
+            </button>
+        }
+    </div>
+    <div class="card shadow-sm border border-2 mb-4">
+        <div class="card-body px-5 py-4">
+            <div class="d-flex justify-content-between mb-1">
+                <div>
+                    <h4 class="my-1"><strong>Invoice #: </strong><small class="text-muted">@invoice.InvoiceId.ToString().Substring(0, 8).ToUpper()</small></h4>
+                    <h4 class="my-1"><strong>Customer #: </strong><small class="text-muted">@invoice.Customer!.Name</small></h4>
+                </div>
+                <div class="text-end">
+                    <h4 class="my-1"><strong>Date Issued: </strong>@invoice.IssuedAtUtc.ToString("yyyy-MM-dd HH:mm")</h4>
+                    <h4 class="my-1">
+                        <strong>Status: </strong>
+                        <span class="badge @GetStatusBadgeClass(invoice.PaymentStatus!)">
+                            @invoice.PaymentStatus
+                        </span>
+                    </h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th>Description</th>
+                <th class="text-end">Qty</th>
+                <th class="text-end">Unit Price</th>
+                <th class="text-end">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in invoice.Items)
+            {
+                <tr>
+                    <td>
+                        <pre>
+                            @item.Description
+                        </pre>
+                    </td>
+                    <td class="text-end">@item.Quantity</td>
+                    <td class="text-end">@item.UnitPrice.ToString("C")</td>
+                    <td class="text-end">@item.LineTotal.ToString("C", CultureInfo.GetCultureInfo("en-US"))</td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr>
+                <th colspan="3" class="text-end">Subtotal</th>
+                <th class="text-end">@invoice.Subtotal.ToString("C", CultureInfo.GetCultureInfo("en-US"))</th>
+            </tr>
+            <tr>
+                <th colspan="3" class="text-end">Discount</th>
+                <th class="text-end text-danger">-@invoice.DiscountAmount!.Value.ToString("C", CultureInfo.GetCultureInfo("en-US"))</th>
+            </tr>
+            <tr>
+                <th colspan="3" class="text-end">Tax</th>
+                <th class="text-end">@invoice.TaxAmount.ToString("C", CultureInfo.GetCultureInfo("en-US"))</th>
+            </tr>
+            <tr>
+                <th colspan="3" class="text-end">Total</th>
+                <th class="text-end fw-bold">@invoice.Total.ToString("C", CultureInfo.GetCultureInfo("en-US"))</th>
+            </tr>
+        </tfoot>
+    </table>
+}
+
+@code {
+    [Inject] private ServiceApi serviceApi { get; set; } = default!;
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    [Parameter] public Guid InvoiceId { get; set; }
+
+    private InvoiceModel? invoice;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadInvoice();
+    }
+
+    private async Task LoadInvoice()
+    {
+        var invoiceResult = await serviceApi.GetInvoiceAsync(InvoiceId);
+
+        if (invoiceResult.IsSuccess)
+        {
+            invoice = invoiceResult.Data;
+        }
+    }
+    private async Task DownloadPdf()
+    {
+        var invoiceBytesResult = await serviceApi.GetInvoicePdfAsync(InvoiceId);
+
+        if (invoiceBytesResult.IsSuccess)
+        {
+            var bytes = invoiceBytesResult.Data;
+            var base64 = Convert.ToBase64String(bytes!);
+            await JS.InvokeVoidAsync("downloadFileFromBase64",
+                                     $"{InvoiceId}.pdf",
+                                     base64);
+        }
+
+       
+    }
+
+    private string GetStatusBadgeClass(string status) => status switch
+    {
+        "Paid" => "bg-success",
+        "Refunded" => "bg-secondary",
+        "Unpaid" => "bg-danger",
+        _ => "bg-warning"
+    };
+
+    private async Task SettleInvoice()
+    {
+        var settleInvoiceResult = await serviceApi.SettleInvoice(InvoiceId);
+
+        if (settleInvoiceResult.IsSuccess)
+        {
+            await LoadInvoice();
+        }
+    }
+}

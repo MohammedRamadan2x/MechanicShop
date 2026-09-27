@@ -1,0 +1,130 @@
+﻿<div class="bg-body p-1">
+    <div class="my-4">
+        @if (_repairTasks is not null)
+        {
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-2">
+                @foreach (var task in _repairTasks)
+                {
+                    <div class="col">
+                        <div class="card h-100 p-1 border @GetCardBorder(task.RepairTaskId)
+                            @(IsSelected(task.RepairTaskId) ? "bg-success bg-opacity-25 shadow-sm" : "")"
+                        style="font-size: 0.8rem; cursor: pointer;" @onclick="() => ToggleTask(task.RepairTaskId)">
+
+                            <div class="card-body py-2 px-2 d-flex flex-column justify-content-between">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <strong class="mb-0">@task.Name</strong>
+                                    <span class="fs-4">@GetTaskEmoji(task.Name)</span>
+                                </div>
+                                <div class="d-flex justify-content-between small text-nowrap gap-2 flex-wrap">
+                                    <span><i class="bi bi-clock-history me-1"></i>@task.EstimatedDurationInMins mins</span>
+                                    <span>|</span>
+                                    <span><i class="bi bi-cash-coin me-1"></i>$@task.TotalCost</span>
+                                    <span>|</span>
+                                    <span><i class="bi bi-gear-wide-connected me-1"></i>Parts: @task.Parts.Count</span>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center my-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+    </div>
+    <div class="d-flex justify-content-end gap-3">
+        <button class="btn btn-outline-secondary" @onclick="Cancel">
+            <i class="bi bi-x-circle me-2"></i>Cancel
+        </button>
+        <button class="btn btn-primary" @onclick="Save" disabled="@(!_selected.Any())">
+            <i class="bi bi-save me-2"></i>Save
+        </button>
+    </div>
+    @if (errorMessage != null)
+    {
+        <div class="alert alert-danger mt-3">
+            <strong>Error:</strong> @errorMessage
+        </div>
+    }
+</div>
+@code {
+    [Inject] private ServiceApi _serviceApi { get; set; } = default!; 
+
+    [Parameter, EditorRequired] public Guid WorkOrderId { get; set; }
+
+    [Parameter, EditorRequired] public List<Guid> SelectedRepairTaskIds { get; set; } = [];
+
+    [Parameter] public EventCallback OnChange { get; set; }
+
+    private List<RepairTaskModel>? _repairTasks = [];
+    private List<Guid> _selected = [];
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var repairTaskResult = await _serviceApi.GetRepairTasksAsync();
+
+        if (repairTaskResult.IsSuccess)
+        {
+            _repairTasks = repairTaskResult.Data;
+            _selected = SelectedRepairTaskIds.ToList();
+        }
+    }
+
+    private void ToggleTask(Guid taskId)
+    {
+        if (_selected.Contains(taskId))
+            _selected.Remove(taskId);
+        else
+            _selected.Add(taskId);
+    }
+
+    private string GetCardBorder(Guid taskId) =>
+        _selected.Contains(taskId) ? "border-success" : "border-secondary";
+
+    private async Task Save()
+    {
+        var updateWorkOrderRepairTasksResult = await _serviceApi.UpdateWorkOrderRepairTasksAsync(WorkOrderId, 
+            new ModifyRepairTaskRequest { RepairTaskIds = _selected.ToArray() });
+
+        if (updateWorkOrderRepairTasksResult.IsSuccess)
+        {
+            errorMessage = null;
+            await OnChange.InvokeAsync();
+        }
+        else
+        {
+            errorMessage = updateWorkOrderRepairTasksResult.FirstErrorMessage;
+        } 
+    }
+
+    private async Task Cancel()
+    {
+        await OnChange.InvokeAsync();
+    }
+
+    private string GetTaskEmoji(string name)
+    {
+        if (name.Contains("wheel", StringComparison.OrdinalIgnoreCase)) return "🛞";
+        if (name.Contains("brake", StringComparison.OrdinalIgnoreCase)) return "🛑";
+        if (name.Contains("spark", StringComparison.OrdinalIgnoreCase)) return "⚡";
+        if (name.Contains("oil", StringComparison.OrdinalIgnoreCase)) return "🛢️";
+        if (name.Contains("engine", StringComparison.OrdinalIgnoreCase)) return "🧰";
+        if (name.Contains("battery", StringComparison.OrdinalIgnoreCase)) return "🔋";
+        if (name.Contains("filter", StringComparison.OrdinalIgnoreCase)) return "🧽";
+        if (name.Contains("rotation", StringComparison.OrdinalIgnoreCase)) return "🌀";
+        if (name.Contains("belt", StringComparison.OrdinalIgnoreCase)) return "⛓️";
+        if (name.Contains("transmission", StringComparison.OrdinalIgnoreCase)) return "🔁";
+        if (name.Contains("conditioning", StringComparison.OrdinalIgnoreCase)) return "❄️";
+    
+        return "🔧"; // default
+    }
+
+    private bool IsSelected(Guid taskId) => _selected.Contains(taskId); 
+}

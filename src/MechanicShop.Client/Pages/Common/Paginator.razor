@@ -1,0 +1,100 @@
+﻿@if (TotalPages > 1)
+{
+    <nav aria-label="Page navigation">
+        <ul class="pagination pagination-primary">
+
+            @if (CurrentPageNumber > 1)
+            {
+                <li class="page-item">
+                    <a class="page-link" href="@GetUrl(1)">
+                        <span aria-hidden="true">
+                            <i class="bi bi-chevron-double-left"></i>
+                        </span>
+                    </a>
+                </li>
+            }
+
+            @if (StartPage != MaxPage)
+            {
+                @for (int i = StartPage; i <= MaxPage; i++)
+                {
+                    string subClass = CurrentPageNumber == i ? "active" : string.Empty;
+
+                    <li class="page-item @subClass"><a class="page-link" href="@GetUrl(i)">@i</a></li>
+                }
+            }
+
+            @if (CurrentPageNumber < TotalPages)
+            {
+                <li class="page-item">
+                    <a class="page-link" href="@GetUrl(TotalPages)">
+                        <span aria-hidden="true">
+                            <i class="bi bi-chevron-double-right"></i>
+                        </span>
+                    </a>
+                </li>
+            }
+
+            <li class="page-item py-2 text-muted ms-2">
+                Showing records @((CurrentPageNumber - 1) * ItemsPerPage + 1)
+                to @(Math.Min(CurrentPageNumber * ItemsPerPage, TotalItems))
+                of @TotalItems.
+                Page @CurrentPageNumber of @TotalPages.
+            </li>
+        </ul>
+    </nav>
+}
+
+@code {
+    [Parameter]
+    public string NavUrl { get; set; } = String.Empty;
+    [Parameter]
+    public int CurrentPageNumber { get; set; } = 1;
+    [Parameter]
+    public int ItemsPerPage { get; set; } = 30;
+    [Parameter]
+    public int TotalItems { get; set; }
+    public int TotalPages
+    {
+        get
+        {
+            if (TotalItems == 0 || ItemsPerPage == 0)
+            {
+                return 1;
+            }
+
+            return (int)Math.Ceiling((double)TotalItems / (double)ItemsPerPage);
+        }
+    }
+
+    public int StartPage
+    {
+        get
+        {
+            int startPage = CurrentPageNumber - 2;
+            if (startPage < 1)
+            {
+                startPage = 1;
+            }
+
+            return startPage;
+        }
+    }
+
+    public int MaxPage
+    {
+        get
+        {
+            int maxPage = StartPage + 4;
+
+            if (maxPage > TotalPages)
+            {
+                maxPage = TotalPages;
+            }
+
+            return maxPage;
+        }
+    }
+
+    public string GetUrl(int page) => $"{NavUrl}{page}";
+}

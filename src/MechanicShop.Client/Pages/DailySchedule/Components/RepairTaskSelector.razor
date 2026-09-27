@@ -1,0 +1,109 @@
+﻿<div> 
+    <div class="d-flex gap-2 align-items-center mb-2"> 
+        <select class="form-select" @bind="SelectedTaskId"  disabled="@ReadOnly">
+            <option value="">-- Select Task --</option>
+            @foreach (var task in AvailableTasks)
+            {
+                <option value="@task.RepairTaskId">@task.Name (@task.EstimatedDurationInMins mins)</option>
+            }
+        </select>
+        <button class="btn btn-primary btn-sm" @onclick="AddSelectedTask" disabled="@(!SelectedTaskId.HasValue)">Add</button>
+    </div>
+
+
+    <div class="d-flex flex-wrap gap-2">
+        @foreach (var task in SelectedTasks)
+        {
+            <span class="badge bg-secondary">
+                @task.Name
+                @if (!ReadOnly)
+                {
+                    <button type="button" class="btn-close btn-close-white btn-sm ms-2"
+                    aria-label="Remove"
+                    @onclick="@(() => RemoveTask(task.RepairTaskId))">
+                    </button>
+                }
+            </span>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public bool ReadOnly { get; set; }
+
+    [Parameter]
+    public IEnumerable<Guid> ExcludedTaskIds { get; set; } = default!;
+
+
+    [Parameter]
+    public EventCallback<RepairTaskModel> OnTaskAdded { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnTaskRemoved { get; set; }
+
+    private List<RepairTaskModel> AvailableTasks = [];
+    private List<RepairTaskModel> SelectedTasks = [];
+    private Guid? SelectedTaskId;
+
+    [Inject]
+    public ServiceApi serviceApi { get; set; } = default!;
+
+    private List<RepairTaskModel> AllTasks = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        var allTasksResults = await serviceApi.GetRepairTasksAsync();
+
+        if (allTasksResults.IsSuccess)
+        {
+            AllTasks = allTasksResults.Data!;
+            FilterAvailableTasks();
+        }
+         
+    }
+    protected override void OnParametersSet()
+    {
+        FilterAvailableTasks();
+    }
+
+    private void FilterAvailableTasks()
+    {
+        var excluded = ExcludedTaskIds ?? Enumerable.Empty<Guid>();
+
+        AvailableTasks = AllTasks
+            .Where(t => !excluded.Contains(t.RepairTaskId))
+            .ToList() ;
+
+        SelectedTasks = AllTasks
+            .Where(t => excluded.Contains(t.RepairTaskId))
+            .ToList();
+    }
+
+    private async Task AddSelectedTask()
+    {
+        if (SelectedTaskId is null) return;
+
+        var task = AvailableTasks?.FirstOrDefault(t => t.RepairTaskId == SelectedTaskId);
+        if (task is null || SelectedTasks.Any(t => t.RepairTaskId == task.RepairTaskId)) return;
+
+        SelectedTasks.Add(task);
+        await OnTaskAdded.InvokeAsync(task);
+
+        // reset selection
+        SelectedTaskId = null;
+        StateHasChanged();
+    }
+
+    private async Task RemoveTask(Guid taskId)
+    {
+        var task = SelectedTasks.FirstOrDefault(t => t.RepairTaskId == taskId);
+        if (task is not null)
+        {
+            SelectedTasks.Remove(task);
+            await OnTaskRemoved.InvokeAsync(taskId);
+        }
+    }
+}
+

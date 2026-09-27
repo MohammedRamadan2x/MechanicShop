@@ -1,0 +1,25 @@
+﻿.task-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+    .task-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+
+.parts-preview {
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.btn-check:checked + .btn-outline-secondary {
+    background-color: var(--bs-secondary);
+    border-color: var(--bs-secondary);
+    color: var(--bs-white);
+}
+
+@media (max-width: 768px) {
+    .task-card {
+        margin-bottom: 1rem;
+    }
+}

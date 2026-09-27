@@ -27,3 +27,5 @@ jobs:
 
     - name: Run tests
       run: dotnet test --configuration Release --no-build --verbosity normal
+      env:
+        JwtSettings__Secret: ${{ secrets.JWT_SECRET }}
